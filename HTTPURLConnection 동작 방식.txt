@@ -1,0 +1,57 @@
+1. 커넥션이 맺어지는 타이밍
+- openConnection()
+    서버와의 연결에 필요한 자원(소켓 생성 등)을 할당 받음.
+
+- 데이터 전송
+    서버로 데이터를 보내려면 output stream을 생성(getOutputStream())해야한다.
+    이때 I/O Exception이 발생하면 연결이 실패한 것이다.
+    Output stream에 쓰여진 데이터는 서버로 전송된다.
+
+- 데이터 읽기
+    Output stream과 반대 방향의 stream은 getInputStream()으로 생성된다.
+    이 stream으로 서버에서 보낸 데이터를 읽는다.
+    이외에 서버로부터 무언가를 받는 동작을 실행하면 Input Stream이 생성된다.
+
+결론 :
+자원을 할당 받고 읽기 혹은 쓰기 stream을 생성할 때 커넥션이 맺어진다.
+
+참고한 글 :
+https://stackoverflow.com/a/60349100/13162709
+
+https://docs.oracle.com/javase/8/docs/api/java/net/URLConnection.html#connect--
+
+
+2. 커넥션이 끊어지는 타이밍
+- 사용한 프로토콜에 따라 다르다. Stream을 close하면 끊어지는 프로토콜도 있고 아닌것도 있다.
+
+참고한 글 :
+https://stackoverflow.com/questions/272910/in-java-when-does-a-url-connection-close
+
+3. 그래서 disconnect()를 호출해야 memory leak이 없을까?
+그렇지 않다. 할당된 자원이 없어질 '수' 있다 정도의 의미만 가진다.
+
+disconnect()를 호출하면 소켓이 idle 상태일 때 네트워크 연결에 할당된 자원이 해제될 수 있다.
+소켓을 생성하고 해제하는 작업은 비싸다.
+그래서 정말 필요한게 아니라면 disconnect()를 호출하지 않아도 된다.
+
+stream을 close 외에 개발자가 할 수 있는 일은 없다.
+
+참고한 글 :
+https://docs.oracle.com/javase/8/docs/api/java/net/HttpURLConnection.html에서 
+'Each HttpURLConnection instance is used to make a single request but the underlying network connection to the HTTP server may be transparently shared by other instances. Calling the close() methods on the InputStream or OutputStream of an HttpURLConnection after a request may free network resources associated with this instance but has no effect on any shared persistent connection. Calling the disconnect() method may close the underlying socket if a persistent connection is otherwise idle at that time.'
+
+https://docs.oracle.com/javase/8/docs/api/java/net/HttpURLConnection.html#disconnect--
+
+
+4. 타임아웃
+연결과 데이터 읽기는 별개의 operation이다. 각각에 타임아웃을 줄 수 있다.
+ . 서버와의 연결에 소요되는 시간 제한 -> Connect Timeout
+ . 서버에서 보내온 데이터를 읽을 수 있을 때까지 기다릴 시간 - Read Timeout
+
+두 타임아웃 모두 SocketTimeoutException을 발생시킨다.
+
+기본값은 모두 0으로 타임아웃을 설정하지 않으면 무한 대기에 빠질 수 있다.
+
+참고한 글 : https://docs.oracle.com/javase/8/docs/api/java/net/URLConnection.html#getConnectTimeout--
+
+
